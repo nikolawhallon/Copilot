@@ -10,7 +10,9 @@ import "AnimatedSprite.lua"
 local gfx <const> = playdate.graphics
 local gmtry <const> = playdate.geometry
 gfx.setBackgroundColor(gfx.kColorBlack)
+
 local speed = 2.0
+local bulletSpeed = 4.0
 
 -- globals
 local player = {}
@@ -21,6 +23,31 @@ player.turret_radius = 1
 player.turret_angle = 0
 
 local bullets = {}
+
+local enemies = {}
+local enemyTimer = nil
+
+local function enemyBulletTimerCallback(enemy)
+	local ref = gmtry.vector2D.new(1, 0)
+	local vector = player.position - enemy.position
+	vector:normalize()
+	spawnBullet(enemy.position, ref:angleBetween(vector) + 90)
+end
+
+local function enemyTimerCallback()	
+	enemy = {}
+	enemy.position = gmtry.point.new(0, 0)
+	enemy.destination = gmtry.point.new(400, 240)
+
+	if enemies[1] == nil then
+		enemies[1] = enemy
+	else
+		table.insert(enemies, enemy)
+	end
+		
+	enemy.bulletTimer = playdate.timer.new(1432, enemyBulletTimerCallback, enemy)
+	enemy.bulletTimer.repeats = true
+end
 
 function drawPlayer()
 	gfx.drawCircleAtPoint(player.position, player.radius)
@@ -36,10 +63,16 @@ function drawBullets()
 	end
 end
 
-function spawnBullet()
+function drawEnemies()
+	for index, enemy in pairs(enemies) do
+		gfx.drawCircleAtPoint(enemy.position, 4) -- TODO: don't hardcode enemy radius here
+	end
+end
+
+function spawnBullet(position, angle)
 	bullet = {}
-	bullet.position = gmtry.point.new(player.position:unpack())
-	bullet.angle = player.turret_angle
+	bullet.position = gmtry.point.new(position:unpack())
+	bullet.angle = angle
 	
 	if bullets[1] == nil then
 		bullets[1] = bullet
@@ -66,6 +99,13 @@ function initGame()
 	for index = #bullets, 1, -1 do
 		table.remove(bullets, index)
 	end
+
+	for index = #enemies, 1, -1 do
+		table.remove(enemies, index)
+	end
+	
+	enemyTimer = playdate.timer.new(2134, enemyTimerCallback)
+	enemyTimer.repeats = true
 end
 
 initGame()
@@ -85,7 +125,7 @@ function playdate.update()
 	end
 
 	if playdate.buttonJustPressed( playdate.kButtonA ) then		
-		spawnBullet()
+		spawnBullet(player.position, player.turret_angle)
 	end
 	
 	local dx = 0
@@ -131,7 +171,7 @@ function playdate.update()
 	for index = #bullets, 1, -1 do
 		local delta = gmtry.vector2D.newPolar(1, bullets[index].angle)
 		delta:normalize()
-		delta:scale(speed)
+		delta:scale(bulletSpeed)
 		bullets[index].position:offset(delta:unpack())
 		
 		if outOfBounds(bullets[index].position) then
@@ -139,9 +179,26 @@ function playdate.update()
 		end
 	end
 
+	-- update enemies
+	for index = #enemies, 1, -1 do
+		local delta = enemies[index].destination - enemies[index].position
+		delta:normalize()
+		delta:scale(speed)
+		enemies[index].position:offset(delta:unpack())
+
+		if enemies[index].position:distanceToPoint(enemies[index].destination) < 5 then
+			enemies[index].bulletTimer:remove() -- this seems like the best/right way to remove the timer!
+			table.remove(enemies, index) -- TODO: do this a better way (maybe)
+		end
+	end
+	
+	--print(#enemies)
+	--print(#playdate.timer.allTimers())
+
 	-- draw objects
 	drawPlayer()
 	drawBullets()
+	drawEnemies()
 	
 	playdate.timer.updateTimers()
 end
