@@ -15,6 +15,7 @@ local speed = 2.0
 local bulletSpeed = 4.0
 
 -- globals
+local gameOver = false
 local player = {}
 player.position = gmtry.point.new(200, 120)
 player.radius = 8
@@ -23,9 +24,11 @@ player.turret_radius = 1
 player.turret_angle = 0
 
 local bullets = {}
+local bulletRadius = 2
 
 local enemies = {}
 local enemyTimer = nil
+local enemyRadius = 4
 
 local function enemyBulletTimerCallback(enemy)
 	local ref = gmtry.vector2D.new(1, 0)
@@ -34,10 +37,13 @@ local function enemyBulletTimerCallback(enemy)
 	spawnBullet(enemy.position, ref:angleBetween(vector) + 90)
 end
 
-local function enemyTimerCallback()	
+local function enemyTimerCallback()
+	local positionFromCenter = gmtry.vector2D.newPolar(200 + 32, math.random(0, 360))
+	local destinationFromCenter = gmtry.vector2D.newPolar(200 + 32, math.random(0, 360))
+	local center = gmtry.point.new(200, 120)
 	enemy = {}
-	enemy.position = gmtry.point.new(0, 0)
-	enemy.destination = gmtry.point.new(400, 240)
+	enemy.position = center + positionFromCenter
+	enemy.destination = center + destinationFromCenter
 
 	if enemies[1] == nil then
 		enemies[1] = enemy
@@ -59,13 +65,13 @@ end
 
 function drawBullets()
 	for index, bullet in pairs(bullets) do
-		gfx.drawCircleAtPoint(bullet.position, 2) -- TODO: don't hardcode bullet radius here
+		gfx.drawCircleAtPoint(bullet.position, bulletRadius)
 	end
 end
 
 function drawEnemies()
 	for index, enemy in pairs(enemies) do
-		gfx.drawCircleAtPoint(enemy.position, 4) -- TODO: don't hardcode enemy radius here
+		gfx.drawCircleAtPoint(enemy.position, enemyRadius)
 	end
 end
 
@@ -74,6 +80,12 @@ function spawnBullet(position, angle)
 	bullet.position = gmtry.point.new(position:unpack())
 	bullet.angle = angle
 	
+	-- offset the bullet so that it never collides with its source
+	local delta = gmtry.vector2D.newPolar(1, bullet.angle)
+	delta:normalize()
+	delta:scale(16)
+	bullet.position:offset(delta:unpack())
+
 	if bullets[1] == nil then
 		bullets[1] = bullet
 	else
@@ -90,6 +102,8 @@ function outOfBounds(point)
 end
 
 function initGame()
+	gameOver = false
+	
 	player.position = gmtry.point.new(200, 120)
 	player.radius = 8
 	player.turret_offset = 3
@@ -101,6 +115,7 @@ function initGame()
 	end
 
 	for index = #enemies, 1, -1 do
+		enemies[index].bulletTimer:remove()
 		table.remove(enemies, index)
 	end
 	
@@ -114,6 +129,22 @@ function playdate.update()
 	gfx.clear()
 	gfx.setLineWidth(1)
 	gfx.setColor(playdate.graphics.kColorXOR)
+	
+	if gameOver then
+		enemyTimer:remove()
+		
+		for index = #enemies, 1, -1 do
+			enemies[index].bulletTimer:remove()
+		end
+
+		if playdate.buttonIsPressed( playdate.kButtonA ) and playdate.buttonIsPressed( playdate.kButtonB ) then		
+			initGame()
+		end
+
+		drawBullets()
+		drawEnemies()
+		return
+	end
 	
 	-- handle input
 	local crankChange, crankAcceleratedChange = playdate.getCrankChange()
@@ -192,6 +223,24 @@ function playdate.update()
 		end
 	end
 	
+	-- check for collisions
+	for e = #enemies, 1, -1 do
+		for b = #bullets, 1, -1 do
+			if enemies[e].position:distanceToPoint(bullets[b].position) < enemyRadius + bulletRadius then
+				enemies[e].bulletTimer:remove()
+				table.remove(enemies, e)
+				table.remove(bullets, b)
+			end
+		end
+	end
+	
+	for b = #bullets, 1, -1 do
+		if player.position:distanceToPoint(bullets[b].position) < player.radius + bulletRadius then
+			gameOver = true
+			table.remove(bullets, b)
+		end
+	end
+
 	--print(#enemies)
 	--print(#playdate.timer.allTimers())
 
