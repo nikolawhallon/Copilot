@@ -11,8 +11,9 @@ local gfx <const> = playdate.graphics
 local gmtry <const> = playdate.geometry
 gfx.setBackgroundColor(gfx.kColorBlack)
 
-local speed = 2.0
-local bulletSpeed = 4.0
+local speed = 3.0
+local boostSpeed = 6.0
+local bulletSpeed = 5.0
 
 -- globals
 local gameOver = false
@@ -26,9 +27,24 @@ player.turret_angle = 0
 local bullets = {}
 local bulletRadius = 2
 
+-- the following variables and
+-- enemyBulletTimerCallback, enemyTimerCallback, updateEnemies, drawEnemies
+-- and enemy collision handling logic are all specific to one style of
+-- enemy behavior - but I would like to support multiple styles
+-- of enemy behavior - I am thinking, then, to create waves of enemies
+-- where each wave has its own logic
+-- TODO: refactor into
+--   alpha_enemies
+--   beta_enemies
+--   gamma_enemies
+--   delta_enemies (just one, a boss)
+-- waves could be score dependent, # spawned enemies dependent, or time dependent
+-- for starters, I think I will go with score dependent
 local enemies = {}
 local enemyTimer = nil
-local enemyRadius = 4
+local enemyRadius = 8
+local enemyInterval = 2134
+local enemyBulletInterval = 1432
 
 local function enemyBulletTimerCallback(enemy)
 	local ref = gmtry.vector2D.new(1, 0)
@@ -39,11 +55,14 @@ end
 
 local function enemyTimerCallback()
 	local positionFromCenter = gmtry.vector2D.newPolar(200 + 32, math.random(0, 360))
-	local destinationFromCenter = gmtry.vector2D.newPolar(200 + 32, math.random(0, 360))
 	local center = gmtry.point.new(200, 120)
 	enemy = {}
 	enemy.position = center + positionFromCenter
-	enemy.destination = center + destinationFromCenter
+
+	local vector = player.position - enemy.position
+	vector:normalize()
+	vector:scale((200 + 32) * 2)
+	enemy.destination = enemy.position + vector
 
 	if enemies[1] == nil then
 		enemies[1] = enemy
@@ -51,8 +70,22 @@ local function enemyTimerCallback()
 		table.insert(enemies, enemy)
 	end
 		
-	enemy.bulletTimer = playdate.timer.new(1432, enemyBulletTimerCallback, enemy)
+	enemy.bulletTimer = playdate.timer.new(enemyBulletInterval, enemyBulletTimerCallback, enemy)
 	enemy.bulletTimer.repeats = true
+end
+
+function updateEnemies()
+	for index = #enemies, 1, -1 do
+		local delta = enemies[index].destination - enemies[index].position
+		delta:normalize()
+		delta:scale(speed)
+		enemies[index].position:offset(delta:unpack())
+
+		if enemies[index].position:distanceToPoint(enemies[index].destination) < 5 then
+			enemies[index].bulletTimer:remove() -- this seems like the best/right way to remove the timer!
+			table.remove(enemies, index) -- TODO: do this a better way (maybe)
+		end
+	end
 end
 
 function drawPlayer()
@@ -73,6 +106,10 @@ function drawEnemies()
 	for index, enemy in pairs(enemies) do
 		gfx.drawCircleAtPoint(enemy.position, enemyRadius)
 	end
+end
+
+function drawBoss()
+	gfx.drawCircleAtPoint(gmtry.point.new(64, 64), 32)
 end
 
 function spawnBullet(position, angle)
@@ -119,7 +156,11 @@ function initGame()
 		table.remove(enemies, index)
 	end
 	
-	enemyTimer = playdate.timer.new(2134, enemyTimerCallback)
+	-- TODO: I would like the time here to depend on both enemyInterval
+	-- and the player's score - if I want other waves of enemies to have
+	-- a similar reliance, I probably need to break the score up by wave
+	-- e.g. alpha_score, beta_score, gamma_score, delta_score
+	enemyTimer = playdate.timer.new(enemyInterval, enemyTimerCallback)
 	enemyTimer.repeats = true
 end
 
@@ -129,7 +170,8 @@ function playdate.update()
 	gfx.clear()
 	gfx.setLineWidth(1)
 	gfx.setColor(playdate.graphics.kColorXOR)
-	
+	gfx.setImageDrawMode(gfx.kDrawModeFillWhite)
+		
 	if gameOver then
 		enemyTimer:remove()
 		
@@ -143,19 +185,17 @@ function playdate.update()
 
 		drawBullets()
 		drawEnemies()
+		
+		gfx.drawTextAligned("Game Over", 200, 120 - 16, kTextAlignment.center)
+		gfx.drawTextAligned("Press A+B To Retry", 200, 120, kTextAlignment.center)
+
 		return
 	end
 	
 	-- handle input
 	local crankChange, crankAcceleratedChange = playdate.getCrankChange()
 
-	-- this is temporary for testing
-	if playdate.buttonJustPressed( playdate.kButtonB ) then		
-		initGame()
-		return
-	end
-
-	if playdate.buttonJustPressed( playdate.kButtonA ) then		
+	if playdate.buttonJustPressed( playdate.kButtonA ) and not playdate.buttonIsPressed( playdate.kButtonB ) then		
 		spawnBullet(player.position, player.turret_angle)
 	end
 	
@@ -177,7 +217,14 @@ function playdate.update()
 	-- update player
 	local delta = gmtry.vector2D.new(dx, dy)
 	delta:normalize()
-	delta:scale(speed)
+	
+	-- intermingles input handling and player updated, ugh
+	if playdate.buttonIsPressed( playdate.kButtonB ) then		
+		delta:scale(boostSpeed)
+	else
+		delta:scale(speed)
+	end
+
 	player.position:offset(delta:unpack())
 
 	local crank_position = playdate.getCrankPosition()
@@ -211,21 +258,16 @@ function playdate.update()
 	end
 
 	-- update enemies
-	for index = #enemies, 1, -1 do
-		local delta = enemies[index].destination - enemies[index].position
-		delta:normalize()
-		delta:scale(speed)
-		enemies[index].position:offset(delta:unpack())
-
-		if enemies[index].position:distanceToPoint(enemies[index].destination) < 5 then
-			enemies[index].bulletTimer:remove() -- this seems like the best/right way to remove the timer!
-			table.remove(enemies, index) -- TODO: do this a better way (maybe)
-		end
-	end
+	updateEnemies()
 	
 	-- check for collisions
 	for e = #enemies, 1, -1 do
 		for b = #bullets, 1, -1 do
+			-- TODO: occasionally something here is nil, why?
+			-- also, Lua doesn't have "continue" sad face
+			if enemies[e] == nil or bullets[b] == nil then
+				break
+			end
 			if enemies[e].position:distanceToPoint(bullets[b].position) < enemyRadius + bulletRadius then
 				enemies[e].bulletTimer:remove()
 				table.remove(enemies, e)
