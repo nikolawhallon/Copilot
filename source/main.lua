@@ -27,63 +27,51 @@ player.turret_angle = 0
 local bullets = {}
 local bulletRadius = 2
 
--- the following variables and
--- enemyBulletTimerCallback, enemyTimerCallback, updateEnemies, drawEnemies
--- and enemy collision handling logic are all specific to one style of
--- enemy behavior - but I would like to support multiple styles
--- of enemy behavior - I am thinking, then, to create waves of enemies
--- where each wave has its own logic
--- TODO: refactor into
---   alpha_enemies
---   beta_enemies
---   gamma_enemies
---   delta_enemies (just one, a boss)
--- waves could be score dependent, # spawned enemies dependent, or time dependent
--- for starters, I think I will go with score dependent
-local enemies = {}
-local enemyTimer = nil
-local enemyRadius = 8
-local enemyInterval = 2134
-local enemyBulletInterval = 1432
+-- the game as 4 enemy types, alphas, beta, gammas, and delta(s)
+local alphas = {}
+local alphaTimer = nil
+local alphaRadius = 8
+local alphaSpawnInterval = 2134
+local alphaBulletSpawnInterval = 1432
 
-local function enemyBulletTimerCallback(enemy)
+local function alphaBulletTimerCallback(alpha)
 	local ref = gmtry.vector2D.new(1, 0)
-	local vector = player.position - enemy.position
+	local vector = player.position - alpha.position
 	vector:normalize()
-	spawnBullet(enemy.position, ref:angleBetween(vector) + 90)
+	spawnBullet(alpha.position, ref:angleBetween(vector) + 90)
 end
 
-local function enemyTimerCallback()
+local function alphaTimerCallback()
 	local positionFromCenter = gmtry.vector2D.newPolar(200 + 32, math.random(0, 360))
 	local center = gmtry.point.new(200, 120)
-	enemy = {}
-	enemy.position = center + positionFromCenter
+	alpha = {}
+	alpha.position = center + positionFromCenter
 
-	local vector = player.position - enemy.position
+	local vector = player.position - alpha.position
 	vector:normalize()
 	vector:scale((200 + 32) * 2)
-	enemy.destination = enemy.position + vector
+	alpha.destination = alpha.position + vector
 
-	if enemies[1] == nil then
-		enemies[1] = enemy
+	if alphas[1] == nil then
+		alphas[1] = alpha
 	else
-		table.insert(enemies, enemy)
+		table.insert(alphas, alpha)
 	end
 		
-	enemy.bulletTimer = playdate.timer.new(enemyBulletInterval, enemyBulletTimerCallback, enemy)
-	enemy.bulletTimer.repeats = true
+	alpha.bulletSpawnTimer = playdate.timer.new(alphaBulletSpawnInterval, alphaBulletTimerCallback, alpha)
+	alpha.bulletSpawnTimer.repeats = true
 end
 
-function updateEnemies()
-	for index = #enemies, 1, -1 do
-		local delta = enemies[index].destination - enemies[index].position
+function updateAlphas()
+	for index = #alphas, 1, -1 do
+		local delta = alphas[index].destination - alphas[index].position
 		delta:normalize()
 		delta:scale(speed)
-		enemies[index].position:offset(delta:unpack())
+		alphas[index].position:offset(delta:unpack())
 
-		if enemies[index].position:distanceToPoint(enemies[index].destination) < 5 then
-			enemies[index].bulletTimer:remove() -- this seems like the best/right way to remove the timer!
-			table.remove(enemies, index) -- TODO: do this a better way (maybe)
+		if alphas[index].position:distanceToPoint(alphas[index].destination) < 5 then
+			alphas[index].bulletSpawnTimer:remove() -- this seems like the best/right way to remove the timer!
+			table.remove(alphas, index) -- TODO: do this a better way (maybe)
 		end
 	end
 end
@@ -102,9 +90,9 @@ function drawBullets()
 	end
 end
 
-function drawEnemies()
-	for index, enemy in pairs(enemies) do
-		gfx.drawCircleAtPoint(enemy.position, enemyRadius)
+function drawAlphas()
+	for index, alpha in pairs(alphas) do
+		gfx.drawCircleAtPoint(alpha.position, alphaRadius)
 	end
 end
 
@@ -151,17 +139,13 @@ function initGame()
 		table.remove(bullets, index)
 	end
 
-	for index = #enemies, 1, -1 do
-		enemies[index].bulletTimer:remove()
-		table.remove(enemies, index)
+	for index = #alphas, 1, -1 do
+		alphas[index].bulletSpawnTimer:remove()
+		table.remove(alphas, index)
 	end
 	
-	-- TODO: I would like the time here to depend on both enemyInterval
-	-- and the player's score - if I want other waves of enemies to have
-	-- a similar reliance, I probably need to break the score up by wave
-	-- e.g. alpha_score, beta_score, gamma_score, delta_score
-	enemyTimer = playdate.timer.new(enemyInterval, enemyTimerCallback)
-	enemyTimer.repeats = true
+	alphaTimer = playdate.timer.new(alphaSpawnInterval, alphaTimerCallback)
+	alphaTimer.repeats = true
 end
 
 initGame()
@@ -173,10 +157,10 @@ function playdate.update()
 	gfx.setImageDrawMode(gfx.kDrawModeFillWhite)
 		
 	if gameOver then
-		enemyTimer:remove()
+		alphaTimer:remove()
 		
-		for index = #enemies, 1, -1 do
-			enemies[index].bulletTimer:remove()
+		for index = #alphas, 1, -1 do
+			alphas[index].bulletSpawnTimer:remove()
 		end
 
 		if playdate.buttonIsPressed( playdate.kButtonA ) and playdate.buttonIsPressed( playdate.kButtonB ) then		
@@ -184,7 +168,7 @@ function playdate.update()
 		end
 
 		drawBullets()
-		drawEnemies()
+		drawAlphas()
 		
 		gfx.drawTextAligned("Game Over", 200, 120 - 16, kTextAlignment.center)
 		gfx.drawTextAligned("Press A+B To Retry", 200, 120, kTextAlignment.center)
@@ -257,20 +241,20 @@ function playdate.update()
 		end
 	end
 
-	-- update enemies
-	updateEnemies()
+	-- update alphas
+	updateAlphas()
 	
 	-- check for collisions
-	for e = #enemies, 1, -1 do
+	for a = #alphas, 1, -1 do
 		for b = #bullets, 1, -1 do
 			-- TODO: occasionally something here is nil, why?
 			-- also, Lua doesn't have "continue" sad face
-			if enemies[e] == nil or bullets[b] == nil then
+			if alphas[a] == nil or bullets[b] == nil then
 				break
 			end
-			if enemies[e].position:distanceToPoint(bullets[b].position) < enemyRadius + bulletRadius then
-				enemies[e].bulletTimer:remove()
-				table.remove(enemies, e)
+			if alphas[a].position:distanceToPoint(bullets[b].position) < alphaRadius + bulletRadius then
+				alphas[a].bulletSpawnTimer:remove()
+				table.remove(alphas, a)
 				table.remove(bullets, b)
 			end
 		end
@@ -283,13 +267,10 @@ function playdate.update()
 		end
 	end
 
-	--print(#enemies)
-	--print(#playdate.timer.allTimers())
-
 	-- draw objects
 	drawPlayer()
 	drawBullets()
-	drawEnemies()
+	drawAlphas()
 	
 	playdate.timer.updateTimers()
 end
