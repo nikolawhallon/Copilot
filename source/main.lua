@@ -6,75 +6,33 @@ import "CoreLibs/timer"
 -- from https://github.com/Whitebrim/AnimatedSprite
 import "AnimatedSprite.lua"
 
+-- these are the enemy types
+import "alphas"
+-- import "betas"
+-- import "gammas"
+-- import "deltas"
+
 -- constants
 local gfx <const> = playdate.graphics
 local gmtry <const> = playdate.geometry
 gfx.setBackgroundColor(gfx.kColorBlack)
 
-local speed = 3.0
-local boostSpeed = 6.0
-local bulletSpeed = 5.0
-
--- globals
 local gameOver = false
-local player = {}
+
+-- this global, as other modules need access to the player
+player = {}
 player.position = gmtry.point.new(200, 120)
 player.radius = 8
 player.turret_offset = 3
 player.turret_radius = 1
 player.turret_angle = 0
 
+local playerSpeed = 3.0
+local playerBoostSpeed = 6.0
+
 local bullets = {}
 local bulletRadius = 2
-
--- the game as 4 enemy types, alphas, beta, gammas, and delta(s)
-local alphas = {}
-local alphaTimer = nil
-local alphaRadius = 8
-local alphaSpawnInterval = 2134
-local alphaBulletSpawnInterval = 1432
-
-local function alphaBulletTimerCallback(alpha)
-	local ref = gmtry.vector2D.new(1, 0)
-	local vector = player.position - alpha.position
-	vector:normalize()
-	spawnBullet(alpha.position, ref:angleBetween(vector) + 90)
-end
-
-local function alphaTimerCallback()
-	local positionFromCenter = gmtry.vector2D.newPolar(200 + 32, math.random(0, 360))
-	local center = gmtry.point.new(200, 120)
-	alpha = {}
-	alpha.position = center + positionFromCenter
-
-	local vector = player.position - alpha.position
-	vector:normalize()
-	vector:scale((200 + 32) * 2)
-	alpha.destination = alpha.position + vector
-
-	if alphas[1] == nil then
-		alphas[1] = alpha
-	else
-		table.insert(alphas, alpha)
-	end
-		
-	alpha.bulletSpawnTimer = playdate.timer.new(alphaBulletSpawnInterval, alphaBulletTimerCallback, alpha)
-	alpha.bulletSpawnTimer.repeats = true
-end
-
-function updateAlphas()
-	for index = #alphas, 1, -1 do
-		local delta = alphas[index].destination - alphas[index].position
-		delta:normalize()
-		delta:scale(speed)
-		alphas[index].position:offset(delta:unpack())
-
-		if alphas[index].position:distanceToPoint(alphas[index].destination) < 5 then
-			alphas[index].bulletSpawnTimer:remove() -- this seems like the best/right way to remove the timer!
-			table.remove(alphas, index) -- TODO: do this a better way (maybe)
-		end
-	end
-end
+local bulletSpeed = 5.0
 
 function drawPlayer()
 	gfx.drawCircleAtPoint(player.position, player.radius)
@@ -88,16 +46,6 @@ function drawBullets()
 	for index, bullet in pairs(bullets) do
 		gfx.drawCircleAtPoint(bullet.position, bulletRadius)
 	end
-end
-
-function drawAlphas()
-	for index, alpha in pairs(alphas) do
-		gfx.drawCircleAtPoint(alpha.position, alphaRadius)
-	end
-end
-
-function drawBoss()
-	gfx.drawCircleAtPoint(gmtry.point.new(64, 64), 32)
 end
 
 function spawnBullet(position, angle)
@@ -139,13 +87,7 @@ function initGame()
 		table.remove(bullets, index)
 	end
 
-	for index = #alphas, 1, -1 do
-		alphas[index].bulletSpawnTimer:remove()
-		table.remove(alphas, index)
-	end
-	
-	alphaTimer = playdate.timer.new(alphaSpawnInterval, alphaTimerCallback)
-	alphaTimer.repeats = true
+	initAlphas()
 end
 
 initGame()
@@ -157,11 +99,7 @@ function playdate.update()
 	gfx.setImageDrawMode(gfx.kDrawModeFillWhite)
 		
 	if gameOver then
-		alphaTimer:remove()
-		
-		for index = #alphas, 1, -1 do
-			alphas[index].bulletSpawnTimer:remove()
-		end
+		removeAllAlphaTimers()
 
 		if playdate.buttonIsPressed( playdate.kButtonA ) and playdate.buttonIsPressed( playdate.kButtonB ) then		
 			initGame()
@@ -204,9 +142,9 @@ function playdate.update()
 	
 	-- intermingles input handling and player updated, ugh
 	if playdate.buttonIsPressed( playdate.kButtonB ) then		
-		delta:scale(boostSpeed)
+		delta:scale(playerBoostSpeed)
 	else
-		delta:scale(speed)
+		delta:scale(playerSpeed)
 	end
 
 	player.position:offset(delta:unpack())
@@ -245,14 +183,15 @@ function playdate.update()
 	updateAlphas()
 	
 	-- check for collisions
-	for a = #alphas, 1, -1 do
-		for b = #bullets, 1, -1 do
+	for b = #bullets, 1, -1 do
+		for a = #alphas, 1, -1 do
 			-- TODO: occasionally something here is nil, why?
 			-- also, Lua doesn't have "continue" sad face
 			if alphas[a] == nil or bullets[b] == nil then
 				break
 			end
-			if alphas[a].position:distanceToPoint(bullets[b].position) < alphaRadius + bulletRadius then
+			
+			if alphas[a].position:distanceToPoint(bullets[b].position) < alphas[a].radius + bulletRadius then
 				alphas[a].bulletSpawnTimer:remove()
 				table.remove(alphas, a)
 				table.remove(bullets, b)
