@@ -11,7 +11,7 @@ alphas = {}
 
 -- these are local, other modules don't need access to them
 local alphaRadius = 8
-local alphaSpeed = 3.0
+local alphaSpeed = 2.5
 local alphaTimer = nil
 local alphaSpawnInterval = 2134
 local alphaBulletSpawnInterval = 1432
@@ -27,7 +27,7 @@ end
 local function alphaTimerCallback()
 	local positionFromCenter = gmtry.vector2D.newPolar(200 + 32, math.random(0, 360))
 	local center = gmtry.point.new(200, 120)
-	alpha = {}
+	local alpha = {}
 	alpha.radius = alphaRadius
 	alpha.speed = alphaSpeed
 	alpha.position = center + positionFromCenter
