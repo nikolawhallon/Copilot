@@ -20,6 +20,7 @@ local gmtry <const> = playdate.geometry
 gfx.setBackgroundColor(gfx.kColorBlack)
 
 local gameOver = false
+local score = 0
 
 -- TODO: put in some "utils" or something
 function outOfBounds(point)
@@ -32,6 +33,7 @@ end
 
 function initGame()
 	gameOver = false
+	score = 0
 
 	clearBullets()
 	initAlphas() -- note this also clears any currently present alphas
@@ -58,6 +60,7 @@ function playdate.update()
 		
 		gfx.drawTextAligned("Game Over", 200, 120 - 16, kTextAlignment.center)
 		gfx.drawTextAligned("Press A+B To Retry", 200, 120, kTextAlignment.center)
+		gfx.drawTextAligned("Score: " .. tostring(score), 8, 8, kTextAlignment.left)
 
 		return
 	end
@@ -80,6 +83,7 @@ function playdate.update()
 				alphas[a].bulletSpawnTimer:remove()
 				table.remove(alphas, a)
 				table.remove(bullets, b)
+				score += 1
 			end
 		end
 	end
@@ -91,10 +95,12 @@ function playdate.update()
 		end
 	end
 
-	-- draw objects
+	-- draw
 	drawPlayer()
 	drawBullets()
 	drawAlphas()
 	
+	gfx.drawTextAligned("Score: " .. tostring(score), 8, 8, kTextAlignment.left)
+
 	playdate.timer.updateTimers()
 end
