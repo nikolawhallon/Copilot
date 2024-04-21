@@ -18,7 +18,7 @@ function initPlayer()
 	player.position = gmtry.point.new(200, 120)
 	player.radius = 8
 	player.turret_offset = 3
-	player.turret_radius = 1
+	player.turret_radius = 3
 	player.turret_angle = 0
 end
 
@@ -81,7 +81,26 @@ end
 function drawPlayer()
 	gfx.drawCircleAtPoint(player.position, player.radius)
 
-	vector = gmtry.vector2D.newPolar(player.turret_offset, player.turret_angle)
-	turret_position = player.position:offsetBy(vector:unpack())
-	gfx.drawCircleAtPoint(turret_position, player.turret_offset)
+	local vector = gmtry.vector2D.newPolar(player.turret_offset, player.turret_angle)
+	local turret_position = player.position:offsetBy(vector:unpack())
+	gfx.drawCircleAtPoint(turret_position, player.turret_radius)
+	
+	-- crosshair_offset
+	local co = 64
+	local vector = gmtry.vector2D.newPolar(co, player.turret_angle)
+	local crosshair_position = player.position:offsetBy(vector:unpack())
+
+	-- crosshair_radius
+	local cr = 8
+	gfx.drawCircleAtPoint(crosshair_position, cr)
+
+	gfx.drawLine(crosshair_position.x - cr - 2, crosshair_position.y, crosshair_position.x - cr + 2, crosshair_position.y)
+	gfx.drawLine(crosshair_position.x + cr - 3, crosshair_position.y, crosshair_position.x + cr + 1, crosshair_position.y)
+	gfx.drawLine(crosshair_position.x, crosshair_position.y - cr - 2, crosshair_position.x, crosshair_position.y - cr + 2)
+	gfx.drawLine(crosshair_position.x, crosshair_position.y + cr - 3, crosshair_position.x, crosshair_position.y + cr + 1)
+	
+	gfx.drawLine(crosshair_position.x - cr - 2, crosshair_position.y - 1, crosshair_position.x - cr + 2, crosshair_position.y - 1)
+	gfx.drawLine(crosshair_position.x + cr - 3, crosshair_position.y - 1, crosshair_position.x + cr + 1, crosshair_position.y - 1)
+	gfx.drawLine(crosshair_position.x - 1, crosshair_position.y - cr - 2, crosshair_position.x - 1, crosshair_position.y - cr + 2)
+	gfx.drawLine(crosshair_position.x - 1, crosshair_position.y + cr - 3, crosshair_position.x - 1, crosshair_position.y + cr + 1)
 end
