@@ -1,8 +1,0 @@
-name=Copilot
-author=Vacuum Brew Studios
-description=A game about copiloting a spaceship.
-bundleID=com.vacuumbrewstudios.copilot
-version=1.0
-buildNumber=1
-pdxversion=30003
-buildtime=826758105
