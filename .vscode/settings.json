@@ -1,0 +1,24 @@
+{
+  "Lua.runtime.version": "LuaJIT",
+  "Lua.workspace.library": [
+    "${env:PLAYDATE_SDK_PATH}/CoreLibs",
+    "${env:PLAYDATE_SDK_PATH}"
+  ],
+  "Lua.diagnostics.globals": [
+    "playdate",
+    "import"
+  ],
+  "Lua.runtime.special": {
+    "import": "require"
+  },
+  "Lua.runtime.nonstandardSymbol": [
+    "+=",
+    "-=",
+    "*=",
+    "/=",
+    "%="
+  ],
+  "Lua.diagnostics.disable": [
+    "undefined-doc-name"
+  ]
+}

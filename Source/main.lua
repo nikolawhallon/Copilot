@@ -15,8 +15,8 @@ STATE = MENU
 import "game"
 import "menu"
 
-local gfx <const> = playdate.graphics
-local gmtry <const> = playdate.geometry
+local gfx = playdate.graphics
+local gmtry = playdate.geometry
 gfx.setBackgroundColor(gfx.kColorBlack)
 
 function playdate.update()

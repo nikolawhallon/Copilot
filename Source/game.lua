@@ -15,8 +15,8 @@ import "alphas"
 import "player"
 import "bullets"
 
-local gfx <const> = playdate.graphics
-local gmtry <const> = playdate.geometry
+local gfx = playdate.graphics
+local gmtry = playdate.geometry
 gfx.setBackgroundColor(gfx.kColorBlack)
 
 local gameOver = false
@@ -27,7 +27,7 @@ function outOfBounds(point)
 	if point.x < 0 - 32 or point.x > 400 + 32 or point.y < 0 - 32 or point.y > 240 + 32 then
 		return true
 	end
-	
+
 	return false
 end
 
@@ -45,29 +45,29 @@ function updateGame()
 	gfx.setLineWidth(1)
 	gfx.setColor(playdate.graphics.kColorXOR)
 	gfx.setImageDrawMode(gfx.kDrawModeFillWhite)
-		
+
 	if gameOver then
 		removeAllAlphaTimers()
 
-		if playdate.buttonIsPressed( playdate.kButtonA ) and playdate.buttonIsPressed( playdate.kButtonB ) then		
+		if playdate.buttonIsPressed(playdate.kButtonA) and playdate.buttonIsPressed(playdate.kButtonB) then
 			initGame()
 		end
 
 		drawBullets()
 		drawAlphas()
-		
+
 		gfx.drawTextAligned("Game Over", 200, 120 - 16 - 4, kTextAlignment.center)
 		gfx.drawTextAligned("Press A+B To Retry", 200, 120 + 4, kTextAlignment.center)
 		gfx.drawTextAligned("Score: " .. tostring(score), 8, 8, kTextAlignment.left)
 
 		return
 	end
-	
+
 	-- update
 	updatePlayer()
 	updateBullets()
 	updateAlphas()
-	
+
 	-- check for collisions
 	for b = #bullets, 1, -1 do
 		for a = #alphas, 1, -1 do
@@ -76,7 +76,7 @@ function updateGame()
 			if alphas[a] == nil or bullets[b] == nil then
 				break
 			end
-			
+
 			if alphas[a].position:distanceToPoint(bullets[b].position) < alphas[a].radius + bullets[b].radius then
 				alphas[a].bulletSpawnTimer:remove()
 				table.remove(alphas, a)
@@ -85,7 +85,7 @@ function updateGame()
 			end
 		end
 	end
-	
+
 	for b = #bullets, 1, -1 do
 		if player.position:distanceToPoint(bullets[b].position) < player.radius + bullets[b].radius then
 			gameOver = true
@@ -97,7 +97,7 @@ function updateGame()
 	drawPlayer()
 	drawBullets()
 	drawAlphas()
-	
+
 	gfx.drawTextAligned("Score: " .. tostring(score), 8, 8, kTextAlignment.left)
 
 	playdate.timer.updateTimers()

@@ -3,8 +3,8 @@ import "CoreLibs/graphics"
 import "CoreLibs/sprites"
 import "CoreLibs/timer"
 
-local gfx <const> = playdate.graphics
-local gmtry <const> = playdate.geometry
+local gfx = playdate.graphics
+local gmtry = playdate.geometry
 
 -- global
 bullets = {}
@@ -40,7 +40,7 @@ function updateBullets()
 		delta:normalize()
 		delta:scale(bullets[index].speed)
 		bullets[index].position:offset(delta:unpack())
-		
+
 		if outOfBounds(bullets[index].position) then
 			table.remove(bullets, index) -- TODO: do this a better way (maybe)
 		end

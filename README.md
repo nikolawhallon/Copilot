@@ -1,2 +1,4 @@
-# Copilot
-A Playdate game where two players copilot a spaceship.
+```
+pdc Source Copilot.pdx
+PlaydateSimulator Copilot.pdx/
+```

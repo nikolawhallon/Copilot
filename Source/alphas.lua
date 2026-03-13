@@ -3,8 +3,8 @@ import "CoreLibs/graphics"
 import "CoreLibs/sprites"
 import "CoreLibs/timer"
 
-local gfx <const> = playdate.graphics
-local gmtry <const> = playdate.geometry
+local gfx = playdate.graphics
+local gmtry = playdate.geometry
 
 -- this global, as other modules need access to the alphas
 alphas = {}
@@ -42,7 +42,7 @@ local function alphaTimerCallback()
 	else
 		table.insert(alphas, alpha)
 	end
-		
+
 	alpha.bulletSpawnTimer = playdate.timer.new(alphaBulletSpawnInterval, alphaBulletTimerCallback, alpha)
 	alpha.bulletSpawnTimer.repeats = true
 end
@@ -53,14 +53,14 @@ function initAlphas()
 		alphas[index].bulletSpawnTimer:remove()
 		table.remove(alphas, index)
 	end
-	
+
 	alphaTimer = playdate.timer.new(alphaSpawnInterval, alphaTimerCallback)
 	alphaTimer.repeats = true
 end
 
 function removeAllAlphaTimers()
 	alphaTimer:remove()
-	
+
 	for index = #alphas, 1, -1 do
 		alphas[index].bulletSpawnTimer:remove()
 	end
@@ -75,7 +75,7 @@ function updateAlphas()
 
 		if alphas[index].position:distanceToPoint(alphas[index].destination) < 5 then
 			alphas[index].bulletSpawnTimer:remove() -- this seems like the best/right way to remove the timer!
-			table.remove(alphas, index) -- TODO: do this a better way (maybe)
+			table.remove(alphas, index)    -- TODO: do this a better way (maybe)
 		end
 	end
 end

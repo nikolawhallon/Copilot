@@ -6,8 +6,8 @@ import "CoreLibs/timer"
 -- from https://github.com/Whitebrim/AnimatedSprite
 import "AnimatedSprite.lua"
 
-local gfx <const> = playdate.graphics
-local gmtry <const> = playdate.geometry
+local gfx = playdate.graphics
+local gmtry = playdate.geometry
 gfx.setBackgroundColor(gfx.kColorBlack)
 
 function updateMenu()
@@ -16,7 +16,7 @@ function updateMenu()
 	gfx.setColor(playdate.graphics.kColorXOR)
 	gfx.setImageDrawMode(gfx.kDrawModeFillWhite)
 
-	if playdate.buttonIsPressed( playdate.kButtonA ) and playdate.buttonIsPressed( playdate.kButtonB ) then		
+	if playdate.buttonIsPressed(playdate.kButtonA) and playdate.buttonIsPressed(playdate.kButtonB) then
 		return GAME
 	end
 

@@ -3,8 +3,8 @@ import "CoreLibs/graphics"
 import "CoreLibs/sprites"
 import "CoreLibs/timer"
 
-local gfx <const> = playdate.graphics
-local gmtry <const> = playdate.geometry
+local gfx = playdate.graphics
+local gmtry = playdate.geometry
 
 -- this global, as other modules need access to the player
 player = {}
@@ -26,7 +26,7 @@ function updatePlayer()
 	local crankChange, crankAcceleratedChange = playdate.getCrankChange()
 
 	-- shooting bullets
-	if playdate.buttonJustPressed( playdate.kButtonA ) and not playdate.buttonIsPressed( playdate.kButtonB ) then
+	if playdate.buttonJustPressed(playdate.kButtonA) and not playdate.buttonIsPressed(playdate.kButtonB) then
 		-- note that this is a global function, hence we have access to it here	
 		spawnBullet(player.position, player.turret_angle)
 	end
@@ -34,23 +34,23 @@ function updatePlayer()
 	-- moving
 	local dx = 0
 	local dy = 0
-	if playdate.buttonIsPressed( playdate.kButtonUp ) then
+	if playdate.buttonIsPressed(playdate.kButtonUp) then
 		dy = -1.0
 	end
-	if playdate.buttonIsPressed( playdate.kButtonDown ) then
+	if playdate.buttonIsPressed(playdate.kButtonDown) then
 		dy = 1.0
 	end
-	if playdate.buttonIsPressed( playdate.kButtonLeft ) then
+	if playdate.buttonIsPressed(playdate.kButtonLeft) then
 		dx = -1.0
 	end
-	if playdate.buttonIsPressed( playdate.kButtonRight ) then
+	if playdate.buttonIsPressed(playdate.kButtonRight) then
 		dx = 1.0
-		end
+	end
 
-		local delta = gmtry.vector2D.new(dx, dy)
-		delta:normalize()
+	local delta = gmtry.vector2D.new(dx, dy)
+	delta:normalize()
 
-	if playdate.buttonIsPressed( playdate.kButtonB ) then		
+	if playdate.buttonIsPressed(playdate.kButtonB) then
 		delta:scale(playerBoostSpeed)
 	else
 		delta:scale(playerSpeed)
@@ -84,7 +84,7 @@ function drawPlayer()
 	local vector = gmtry.vector2D.newPolar(player.turret_offset, player.turret_angle)
 	local turret_position = player.position:offsetBy(vector:unpack())
 	gfx.drawCircleAtPoint(turret_position, player.turret_radius)
-	
+
 	-- crosshair_offset
 	local co = 64
 	local vector = gmtry.vector2D.newPolar(co, player.turret_angle)
@@ -94,13 +94,19 @@ function drawPlayer()
 	local cr = 8
 	gfx.drawCircleAtPoint(crosshair_position, cr)
 
-	gfx.drawLine(crosshair_position.x - cr - 2, crosshair_position.y, crosshair_position.x - cr + 2, crosshair_position.y)
-	gfx.drawLine(crosshair_position.x + cr - 3, crosshair_position.y, crosshair_position.x + cr + 1, crosshair_position.y)
+	gfx.drawLine(crosshair_position.x - cr - 2, crosshair_position.y, crosshair_position.x - cr + 2, crosshair_position
+	.y)
+	gfx.drawLine(crosshair_position.x + cr - 3, crosshair_position.y, crosshair_position.x + cr + 1, crosshair_position
+	.y)
 	gfx.drawLine(crosshair_position.x, crosshair_position.y - cr - 2, crosshair_position.x, crosshair_position.y - cr + 2)
 	gfx.drawLine(crosshair_position.x, crosshair_position.y + cr - 3, crosshair_position.x, crosshair_position.y + cr + 1)
-	
-	gfx.drawLine(crosshair_position.x - cr - 2, crosshair_position.y - 1, crosshair_position.x - cr + 2, crosshair_position.y - 1)
-	gfx.drawLine(crosshair_position.x + cr - 3, crosshair_position.y - 1, crosshair_position.x + cr + 1, crosshair_position.y - 1)
-	gfx.drawLine(crosshair_position.x - 1, crosshair_position.y - cr - 2, crosshair_position.x - 1, crosshair_position.y - cr + 2)
-	gfx.drawLine(crosshair_position.x - 1, crosshair_position.y + cr - 3, crosshair_position.x - 1, crosshair_position.y + cr + 1)
+
+	gfx.drawLine(crosshair_position.x - cr - 2, crosshair_position.y - 1, crosshair_position.x - cr + 2,
+		crosshair_position.y - 1)
+	gfx.drawLine(crosshair_position.x + cr - 3, crosshair_position.y - 1, crosshair_position.x + cr + 1,
+		crosshair_position.y - 1)
+	gfx.drawLine(crosshair_position.x - 1, crosshair_position.y - cr - 2, crosshair_position.x - 1,
+		crosshair_position.y - cr + 2)
+	gfx.drawLine(crosshair_position.x - 1, crosshair_position.y + cr - 3, crosshair_position.x - 1,
+		crosshair_position.y + cr + 1)
 end
